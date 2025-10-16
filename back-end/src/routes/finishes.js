@@ -6,7 +6,7 @@ const router = express.Router();
 // GET /api/test — récupère toutes les lignes de la table test
 router.get("/", async (req, res) => {
   try {
-    const { rows } = await query("SELECT * FROM tariffs ");
+    const { rows } = await query("SELECT * FROM finishes");
     res.json(rows);
   } catch (err) {
     console.error("Erreur SQL :", err.message);
