@@ -20,4 +20,4 @@ app.use("/api/tariffs", tariffsRoutes);
 app.use("/api/support", supportRoutes); 
 
 const PORT = process.env.PORT || 8081;
-app.listen(PORT, () => console.log(`✅ Serveur en ligne sur http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`✅ Serveur en ligne sur http://0.0.0.0:${PORT}`));
