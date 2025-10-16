@@ -14,7 +14,7 @@ const routes = [
     meta: { title: 'About' } 
   },
   { 
-    path: '/photos/:type', 
+    path: '/photos/:type',  // Route dynamique pour différents types de photos
     name: 'photos', 
     component: () => import('../views/photos.vue'), 
     meta: { title: 'Photos' } 
