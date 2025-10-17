@@ -23,7 +23,7 @@ Il permet de :
 ## 📡 Base URL
 
 ```
-http://localhost:8081
+http://192.168.10.177:8081
 ```
 
 ---
@@ -40,7 +40,7 @@ http://localhost:8081
 
 **Exemple**
 ```bash
-curl http://localhost:8081/api/formats
+curl http://192.168.10.177:8081/api/formats
 ```
 
 ---
@@ -214,21 +214,21 @@ Génère le **PDF du devis** associé à une **ligne précise** (`quote_items.id
 
 Créer un devis :
 ```bash
-curl -X POST http://localhost:8081/api/quotes   -H "Content-Type: application/json"   -d '{"client_name":"Jean Dupont","client_email":"jean@example.com","notes":"Séance tirages"}'
+curl -X POST http://l192.168.10.177:8081/api/quotes   -H "Content-Type: application/json"   -d '{"client_name":"Jean Dupont","client_email":"jean@example.com","notes":"Séance tirages"}'
 ```
 
 Ajouter une ligne :
 ```bash
-curl -X POST http://localhost:8081/api/quote-items/<UUID>/items   -H "Content-Type: application/json"   -d '{"format_code":"A4","support_code":"papier_bril","finish_code":"vernis","qty":10,"vat_rate":20,"description":"Tirage A4 papier brillant vernis"}'
+curl -X POST http://192.168.10.177:8081/api/quote-items/<UUID>/items   -H "Content-Type: application/json"   -d '{"format_code":"A4","support_code":"papier_bril","finish_code":"vernis","qty":10,"vat_rate":20,"description":"Tirage A4 papier brillant vernis"}'
 ```
 
 Finaliser le devis :
 ```bash
-curl -X PATCH http://localhost:8081/api/quotes/<UUID>/finalize   -H "Content-Type: application/json"   -d '{"vat_rate":20,"status":"finalized"}'
+curl -X PATCH http://192.168.10.177:8081/api/quotes/<UUID>/finalize   -H "Content-Type: application/json"   -d '{"vat_rate":20,"status":"finalized"}'
 ```
 
 Télécharger le PDF :
 ```
-GET http://localhost:8081/api/quote-pdf/<UUID>/pdf
-GET http://localhost:8081/api/quote-pdf/item/<ITEM_ID>/pdf
+GET http://192.168.10.177:8081/api/quote-pdf/<UUID>/pdf
+GET http://192.168.10.177:8081/api/quote-pdf/item/<ITEM_ID>/pdf
 ```
