@@ -1,82 +1,104 @@
 <template>
   <div class="home">
-    <h1>Simulateur de Devis</h1>
-    <p>Sélectionnez un type de produit pour commencer :</p>
+    <div class="hero">
+      <h1>Simulateur de Devis</h1>
+      <p>Sélectionnez un type de produit pour commencer :</p>
+    </div>
 
-    <div class="product-types">
-      <!-- Utilisation de router-link pour une navigation native -->
+    <div class="product-grid">
       <router-link
         v-for="product in productTypes"
         :key="product.id"
         :to="product.route"
         class="product-card"
       >
-        <h2>{{ product.title }}</h2>
-        <p>{{ product.description }}</p>
+        <div class="card-content">
+          <div class="card-icon">{{ product.icon }}</div>
+          <h2>{{ product.title }}</h2>
+          <p>{{ product.description }}</p>
+        </div>
       </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from "vue";
 
-// Liste des types de produits (utilisation de ref pour une réactivité future)
 const productTypes = ref([
   {
     id: 1,
     title: "Photos Argentiques",
-    description: "Devis pour tirages photo argentiques (format, finition, quantité).",
-    route: "/photos/argentique", // Correspond à la route dynamique `/photos/:type`
+    description: "Devis pour tirages photo argentiques : format, finition, quantité.",
+    route: "/photos/argentique",
+    icon: "🎞️",
   },
   {
     id: 2,
     title: "Photos Classiques",
-    description: "Devis pour impressions sur papier classique (dimensions, cadre, quantité).",
+    description: "Devis pour impressions classiques : dimensions, cadre, quantité.",
     route: "/photos/classique",
-  }
+    icon: "🖼️",
+  },
 ]);
 </script>
 
 <style scoped>
 .home {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 60px 100px;
+  background: #f9f9f9;
+  box-sizing: border-box;
   text-align: center;
+  color: #2c3e50;
 }
 
-.product-types {
+.hero h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  color: #555;
+  margin-top: 10px;
+  margin-bottom: 50px;
+}
+
+.product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
 }
 
 .product-card {
-  display: block; /* Important pour router-link */
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  cursor: pointer;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 30px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  text-decoration: none; /* Supprime le soulignement des liens */
-  color: inherit; /* Hérite de la couleur du texte parent */
 }
 
 .product-card:hover {
-  background-color: #f5f5f5;
-  border-color: #4CAF50; /* Couleur verte pour le survol */
-  transform: translateY(-3px); /* Effet de soulèvement */
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.25);
+}
+
+.card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
 }
 
 h2 {
+  font-size: 1.4rem;
   color: #2c3e50;
-  margin-bottom: 10px;
 }
 
 p {
   color: #666;
-  font-size: 14px;
+  font-size: 1rem;
 }
 </style>

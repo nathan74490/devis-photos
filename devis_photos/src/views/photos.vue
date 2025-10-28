@@ -1,541 +1,358 @@
 <template>
-  <div class="print-preview-page">
-    <!-- Contenu principal en deux parties -->
-    <div class="main-content">
-      <!-- Zone principale : Visualisation de la photo -->
-      <div class="preview-area">
-        <!-- Cadre d'impression simulé -->
-        <div class="print-frame">
-          <!-- Photo avec transformations appliquées -->
-          <div class="photo-container">
-            <div
-              class="photo-wrapper"
-              :style="{
-                transform: `rotate(${rotation}deg) scale(${scale})`,
-                border: selectedBorder.label === 'Aucune' ? 'none' : '10px solid white',
-                boxShadow: '0 0 20px rgba(0, 0, 0, 0.2)'
-              }"
-              v-if="uploadedPhoto"
-            >
-              <img :src="uploadedPhoto" class="photo" />
-            </div>
-            <div v-else class="empty-preview">
-              <p>Importez une photo pour la visualiser</p>
-            </div>
-          </div>
+  <div class="simulator-page">
+    <header class="app-header">
+      <h1>📸 Simulateur de Devis</h1>
+      <p>Créez votre devis photo en quelques clics.</p>
+    </header>
 
-          <!-- Légende sous la photo -->
-          <div class="photo-caption" v-if="uploadedPhoto">
-            <p>{{ format.label }} | {{ selectedBorder.label }} | {{ orientation }}</p>
+    <main class="simulator-container">
+      <!-- Preview -->
+      <section class="preview-panel glass">
+        <div class="preview-frame" :style="photoContainerStyle">
+          <img v-if="uploadedPhoto" :src="uploadedPhoto" class="preview-image" />
+          <div v-else class="empty-preview">
+            <p>📁 Importez une photo à visualiser</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Panel latéral pour les options -->
-      <div class="options-panel">
-        <!-- Onglets pour naviguer entre les étapes -->
-        <div class="panel-tabs">
+      <!-- Options -->
+      <aside class="options-panel glass">
+        <div class="steps">
           <button
-            v-for="(step, index) in steps"
-            :key="index"
-            @click="currentStep = index + 1"
-            :class="{ active: currentStep === index + 1 }"
+            v-for="(step, i) in steps"
+            :key="i"
+            @click="currentStep = i + 1"
+            :class="{ active: currentStep === i + 1 }"
           >
             {{ step }}
           </button>
         </div>
 
-        <!-- Contenu dynamique selon l'étape -->
         <div class="panel-content">
-          <!-- Étape 1 : Bordure et quantité -->
-          <div v-if="currentStep === 1" class="step-content">
-            <h3>Options de bordure</h3>
-            <div class="border-options">
-              <div
-                v-for="border in borders"
-                :key="border.id"
-                class="border-option"
-                :class="{ selected: selectedBorder.id === border.id }"
-                @click="selectedBorder = border"
-              >
-                <p>{{ border.label }}</p>
-                <p class="price">+{{ border.extra_price_ex_vat }} €</p>
-              </div>
-            </div>
-            <div class="quantity-section">
-              <label>Quantité</label>
-              <input type="number" v-model="quantity" min="1" class="quantity-input" />
-            </div>
-          </div>
-
-          <!-- Étape 2 : Import de la photo -->
-          <div v-if="currentStep === 2" class="step-content">
+          <!-- Étape 1 -->
+          <div v-if="currentStep === 1" class="step fade-in">
             <h3>Importer une photo</h3>
-            <div
-              class="upload-zone"
-              @click="triggerFileInput"
-              @dragover.prevent="dragover = true"
-              @dragleave.prevent="dragover = false"
-              @drop.prevent="onDrop"
-            >
-              <input
-                type="file"
-                ref="fileInput"
-                @change="onFileChange"
-                accept="image/*"
-                style="display: none"
-              />
-              <p v-if="!uploadedPhoto">Glissez-déposez une photo ici ou cliquez pour importer.</p>
-              <img v-else :src="uploadedPhoto" class="upload-preview" />
+            <div class="upload-zone" @click="triggerFileInput">
+              <input ref="fileInput" type="file" @change="onFileChange" accept="image/*" hidden />
+              <p v-if="!uploadedPhoto">Cliquez ou glissez une image ici</p>
+              <img v-else :src="uploadedPhoto" class="upload-thumb" />
             </div>
           </div>
 
-          <!-- Étape 3 : Recadrage et orientation -->
-          <div v-if="currentStep === 3" class="step-content">
-            <h3>Ajuster la photo</h3>
-            <div class="adjustment-tools">
-              <div class="tool-group">
-                <label>Zoom</label>
-                <div class="tool-buttons">
-                  <button @click="scale += 0.1">+</button>
-                  <button @click="scale -= 0.1">-</button>
-                  <button @click="scale = 1">Réinitialiser</button>
-                </div>
+          <!-- Étape 2 -->
+          <div v-if="currentStep === 2" class="step fade-in">
+            <h3>Options</h3>
+            <label>Format</label>
+            <select v-model="format" class="form-control">
+              <option v-for="f in formats" :key="f.id" :value="f">{{ f.label }}</option>
+            </select>
+
+            <label>Support</label>
+            <select v-model="support" class="form-control">
+              <option v-for="s in supports" :key="s.id" :value="s">{{ s.label }}</option>
+            </select>
+
+            <label>Finition</label>
+            <div class="finishes">
+              <button
+                v-for="finish in finishes"
+                :key="finish.id"
+                :class="{ selected: finish.id === selectedFinish.id }"
+                @click="selectedFinish = finish"
+              >
+                {{ finish.label }}
+              </button>
+            </div>
+
+            <label>Quantité</label>
+            <input type="number" v-model="quantity" min="1" class="form-control" />
+          </div>
+
+          <!-- Étape 3 -->
+          <div v-if="currentStep === 3" class="step fade-in">
+            <h3>Ajustements</h3>
+            <div class="controls">
+              <label>Zoom</label>
+              <div class="zoom-buttons">
+                <button @click="scale += 0.1">+</button>
+                <button @click="scale = 1">Reset</button>
+                <button @click="scale -= 0.1">−</button>
               </div>
-              <div class="tool-group">
-                <label>Orientation</label>
-                <div class="tool-buttons">
-                  <button @click="rotation += 90" :class="{ active: rotation === 'portrait' }">Portrait</button>
-                  <button @click="rotation -= 90" :class="{ active: rotation === 'landscape' }">Paysage</button>
-                </div>
-              </div>
-              <div class="tool-group">
-                <label>Format</label>
-                <div class="tool-buttons">
-                  <button 
-                    v-for="format in formats" 
-                    :key="format.id" 
-                    @click="format = format" 
-                    :class="{ active: format.id === format.id }"
-                  >
-                    {{ format.label }}
-                  </button>
-                </div>
+              <label>Orientation</label>
+              <div class="orientation">
+                <button @click="orientation = 'portrait'" :class="{ active: orientation === 'portrait' }">📐 Portrait</button>
+                <button @click="orientation = 'landscape'" :class="{ active: orientation === 'landscape' }">🖼️ Paysage</button>
               </div>
             </div>
           </div>
 
-          <!-- Étape 4 : Récapitulatif -->
-          <div v-if="currentStep === 4" class="step-content">
-            <h3>Récapitulatif</h3>
+          <!-- Étape 4 -->
+          <div v-if="currentStep === 4" class="step fade-in">
+            <h3>Vos informations</h3>
+            <input v-model="firstName" class="form-control" placeholder="Prénom" />
+            <input v-model="lastName" class="form-control" placeholder="Nom" />
+            <input v-model="email" class="form-control" placeholder="Email" type="email" />
+            <button class="btn-main" @click="createQuote">Générer le devis</button>
+          </div>
+
+          <!-- Étape 5 -->
+          <div v-if="currentStep === 5" class="step fade-in">
+            <h3>Devis généré 🎉</h3>
             <div class="summary">
-              <div class="summary-item">
-                <span>Format:</span>
-                <span>{{ format.label }}</span>
-              </div>
-              <div class="summary-item">
-                <span>Bordure:</span>
-                <span>{{ selectedBorder.label }}</span>
-              </div>
-              <div class="summary-item">
-                <span>Quantité:</span>
-                <span>{{ quantity }}</span>
-              </div>
-              <div class="summary-item">
-                <span>Orientation:</span>
-                <span>{{ orientation }}</span>
-              </div>
-              <div class="summary-item total">
-                <span>Prix total:</span>
-                <span>{{ totalPrice }} €</span>
-              </div>
+              <p><strong>Client :</strong> {{ firstName }} {{ lastName }}</p>
+              <p><strong>Format :</strong> {{ format.label }}</p>
+              <p><strong>Support :</strong> {{ support.label }}</p>
+              <p><strong>Finition :</strong> {{ selectedFinish.label }}</p>
+              <p><strong>Quantité :</strong> {{ quantity }}</p>
+              <p class="total"><strong>Total :</strong> {{ totalPrice }} €</p>
             </div>
-            <button @click="saveQuote" class="print-button">Enregistrer et imprimer</button>
+            <a v-if="pdfUrl" :href="pdfUrl" download="devis.pdf" class="btn-secondary">⬇ Télécharger le PDF</a>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </main>
   </div>
 </template>
+
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, computed } from "vue";
 
-// Récupérer l'ID du format depuis l'URL
-const route = useRoute();
-const formatId = route.params.type;
-
-// Données
-const format = ref({});
-const borders = ref([]);
-const isLoading = ref(true);
-const error = ref(null);
-
-// État des étapes
-const currentStep = ref(1);
-const steps = ['Bordures', 'Importer', 'Ajuster', 'Récapitulatif'];
-
-// Données de configuration
-const selectedBorder = ref({});
-const quantity = ref(1);
-const uploadedPhoto = ref(null);
-const rotation = ref(0);
-const scale = ref(1);
-const orientation = ref('portrait');
-const fileInput = ref(null);
-const dragover = ref(false);
-
-// Liste des formats disponibles
+const BASE_URL = "http://192.168.10.177:8081";
 const formats = ref([]);
+const supports = ref([]);
+const finishes = ref([]);
 
-// Calcul du prix total
+const format = ref({});
+const support = ref({});
+const selectedFinish = ref({});
+const uploadedPhoto = ref(null);
+const quantity = ref(1);
+const scale = ref(1);
+const orientation = ref("portrait");
+
+const currentStep = ref(1);
+const firstName = ref("");
+const lastName = ref("");
+const email = ref("");
+const pdfUrl = ref(null);
+const steps = ["Importer", "Options", "Ajustements", "Informations", "Devis"];
+
 const totalPrice = computed(() => {
-  const basePrice = parseFloat(format.value.unit_price_ex_vat) || 0;
-  const borderPrice = parseFloat(selectedBorder.value.price) || 0;
-  return (basePrice + borderPrice) * quantity.value;
+  const base = parseFloat(format.value.unit_price_ex_vat) || 0;
+  const sup = parseFloat(support.value.extra_price_ex_vat) || 0;
+  const fin = parseFloat(selectedFinish.value.extra_price_ex_vat) || 0;
+  return ((base + sup + fin) * quantity.value).toFixed(2);
 });
 
-// Récupérer les données depuis l'API
+const photoContainerStyle = computed(() => ({
+  transform: `scale(${scale.value})`,
+  aspectRatio: orientation.value === "portrait" ? "3 / 4" : "4 / 3",
+}));
+
+const fetchApi = async (url) => (await fetch(url)).json();
+
 onMounted(async () => {
-  try {
-    isLoading.value = true;
-    const formatResponse = await fetch(`http://192.168.10.177:8081/api/formats`);
-    if (!formatResponse.ok) throw new Error('Format non trouvé');
-    format.value = await formatResponse.json();
-
-    const bordersResponse = await fetch('http://192.168.10.177:8081/api/finishes');
-    if (!bordersResponse.ok) throw new Error('Erreur lors du chargement des bordures');
-    borders.value = await bordersResponse.json();
-
-    if (borders.value.length > 0) {
-      selectedBorder.value = borders.value[0];
-    }
-
-    const formatsResponse = await fetch('http://192.168.10.177:8081/api/formats');
-    if (!formatsResponse.ok) throw new Error('Erreur lors du chargement des formats');
-    formats.value = await formatsResponse.json();
-  } catch (err) {
-    error.value = err.message;
-    console.error('Erreur:', err);
-  } finally {
-    isLoading.value = false;
-  }
+  [formats.value, supports.value, finishes.value] = await Promise.all([
+    fetchApi(`${BASE_URL}/api/formats`),
+    fetchApi(`${BASE_URL}/api/support`),
+    fetchApi(`${BASE_URL}/api/finishes`),
+  ]);
+  format.value = formats.value[0];
+  support.value = supports.value[0];
+  selectedFinish.value = finishes.value[0];
 });
 
-// Gestion de l'import de photo
-const triggerFileInput = () => {
-  fileInput.value.click();
-};
-
+const fileInput = ref(null);
+const triggerFileInput = () => fileInput.value.click();
 const onFileChange = (e) => {
   const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      uploadedPhoto.value = event.target.result;
-      currentStep.value = 3; // Passer à l'étape d'ajustement après import
-    };
-    reader.readAsDataURL(file);
-  }
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => (uploadedPhoto.value = ev.target.result);
+  reader.readAsDataURL(file);
+  currentStep.value = 2;
 };
 
-const onDrop = (e) => {
-  dragover.value = false;
-  const file = e.dataTransfer.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      uploadedPhoto.value = event.target.result;
-      currentStep.value = 3;
-    };
-    reader.readAsDataURL(file);
-  }
-};
-
-// Sauvegarde du devis
-const saveQuote = () => {
-  const quoteData = {
-    format: format.value,
-    border: selectedBorder.value,
-    quantity: quantity.value,
-    photo: uploadedPhoto.value,
-    orientation: orientation.value,
-    totalPrice: totalPrice.value,
-  };
-  console.log('Devis enregistré :', quoteData);
-  alert('Devis enregistré avec succès !');
+const createQuote = async () => {
+  currentStep.value = 5;
+  pdfUrl.value = "#"; // placeholder pour exemple
 };
 </script>
+
 <style scoped>
-.print-preview-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-}
-
-.header {
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.steps-indicator {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 10px;
-}
-
-.steps-indicator span {
-  padding: 5px 10px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.steps-indicator span.active {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.steps-indicator span.completed {
-  background-color: #8BC34A;
-  color: white;
-}
-
-.main-content {
-  display: flex;
-  gap: 30px;
-  margin-top: 20px;
-}
-
-.preview-area {
-  flex: 2;
-  background-color: #f9f9f9;
-  padding: 30px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+/* --- Global Layout --- */
+.simulator-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f8ff, #e9f5ee, #fdfdfd);
+  color: #333;
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 40px 20px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 40px;
 }
 
-.print-frame {
-  width: 100%;
-  max-width: 600px;
-  background-color: white;
+/* --- Header --- */
+.app-header {
+  text-align: center;
+}
+.app-header h1 {
+  font-size: 2.4rem;
+  background: linear-gradient(90deg, #4CAF50, #1B5E20);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.app-header p {
+  color: #555;
+  margin-top: 8px;
+}
+
+/* --- Main Layout --- */
+.simulator-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: center;
+}
+
+/* --- Panels --- */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   padding: 20px;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
-.photo-container {
-  width: 100%;
-  height: 400px;
+.preview-panel {
+  flex: 1 1 450px;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+.preview-frame {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 12px;
   overflow: hidden;
-  position: relative;
+  background: #fafafa;
+  border: 2px dashed #cce0cc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.4s;
 }
-
-.photo-wrapper {
-  max-width: 100%;
-  max-height: 100%;
-  transition: transform 0.3s ease;
+.preview-frame:hover {
+  border-color: #4caf50;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
 }
-
-.photo {
-  max-width: 100%;
-  max-height: 100%;
+.preview-image {
+  width: 100%;
+  height: auto;
   object-fit: contain;
 }
-
 .empty-preview {
   color: #999;
   font-style: italic;
-  text-align: center;
 }
 
-.photo-caption {
-  text-align: center;
-  color: #666;
-  font-size: 14px;
-}
-
+/* --- Options Panel --- */
 .options-panel {
-  flex: 1;
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  height: fit-content;
-}
-
-.panel-tabs {
-  display: flex;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.panel-tabs button {
-  flex: 1;
-  padding: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-  color: #666;
-  border-bottom: 2px solid transparent;
-}
-
-.panel-tabs button.active {
-  color: #4CAF50;
-  border-bottom-color: #4CAF50;
-}
-
-.step-content {
-  padding: 10px 0;
-}
-
-.border-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.border-option {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  color:#333; 
-}
-
-.border-option.selected {
-  border-color: #4CAF50;
-  background-color: #f0f9ff;
-}
-
-.border-preview {
-  width: 80px;
-  height: 50px;
-  margin: 0 auto 5px;
-  background-color: #f0f0f0;
-  border-radius: 2px;
-}
-
-.price {
-  font-size: 12px;
-  color: #666;
-}
-
-.quantity-section {
-  margin-bottom: 20px;
-}
-
-.quantity-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.upload-zone {
-  border: 2px dashed #ccc;
-  padding: 30px;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-  margin-bottom: 20px;
-  color: #333; /* Ensure text is visible */
-}
-
-.upload-zone:hover {
-  border-color: #4CAF50;
-  background-color: #f9f9f9;
-}
-
-.upload-preview {
-  max-width: 100%;
-  max-height: 200px;
-  margin-top: 10px;
-}
-
-.adjustment-tools {
+  flex: 1 1 350px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  color: #333;
 }
-
-.tool-group {
-  background-color: #f9f9f9;
-  padding: 10px;
-  border-radius: 4px;
-}
-
-.tool-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.tool-buttons {
-  display: flex;
-  gap: 5px;
-}
-
-.tool-buttons button {
-  flex: 1;
-  padding: 5px;
-  background-color: #f0f0f0;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  color:#333;
-}
-
-.tool-buttons button.active {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.summary {
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 4px;
-  color:#333;
-}
-
-.summary-item {
+.steps {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
-
-.summary-item.total {
-  font-weight: bold;
-  font-size: 16px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #ddd;
-}
-
-.print-button {
-  width: 100%;
+.steps button {
+  flex: 1;
   padding: 10px;
-  background-color: #4CAF50;
-  color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 16px;
+  border-radius: 10px;
+  background: #f1f1f1;
   cursor: pointer;
-  margin-top: 20px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+.steps button.active {
+  background: #4caf50;
+  color: white;
+  box-shadow: 0 0 8px rgba(76,175,80,0.4);
+}
+
+.form-control {
+  width: 100%;
+  margin: 6px 0 16px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: 0.3s;
+}
+.form-control:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 4px rgba(76,175,80,0.2);
+}
+
+.finishes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.finishes button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.finishes button.selected {
+  background: #4caf50;
+  color: white;
+  border-color: #4caf50;
+}
+
+.btn-main {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: linear-gradient(90deg, #43A047, #66BB6A);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.btn-main:hover {
+  box-shadow: 0 4px 14px rgba(76,175,80,0.3);
+}
+.btn-secondary {
+  display: inline-block;
+  margin-top: 16px;
+  text-decoration: none;
+  color: #388E3C;
+  font-weight: 600;
+  border: 1px solid #388E3C;
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: 0.3s;
+}
+.btn-secondary:hover {
+  background: #388E3C;
+  color: white;
+}
+
+/* --- Animation --- */
+.fade-in { animation: fade 0.3s ease; }
+@keyframes fade {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
 }
 </style>
