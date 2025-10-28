@@ -6,14 +6,29 @@ const router = express.Router();
 
 router.get("/:id/pdf", async (req, res) => {
   try {
-    const pdfBytes = await buildQuotePdf(req.params.id);
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="devis-${req.params.id}.pdf"`);
-    res.send(Buffer.from(pdfBytes));
+    const pdfBuffer = await buildQuotePdf(req.params.id);
+
+    // En-têtes binaire propres
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="devis-${req.params.id}.pdf"`,
+      "Content-Length": pdfBuffer.length,
+      "Cache-Control": "no-store"
+    });
+
+    return res.end(pdfBuffer); // ✅ important: binaire pur
   } catch (e) {
-    console.error(e);
-    const status = e.message === "QUOTE_NOT_FOUND" ? 404 : 500;
-    res.status(status).json({ ok: false, error: e.message });
+    console.error("[quote-pdf]", e);
+    const status =
+      e.message === "QUOTE_NOT_FOUND" ? 404 :
+      e.message === "TEMPLATE_NOT_FOUND" ? 500 :
+      e.message === "TEMPLATE_EMPTY" ? 500 : 500;
+
+    return res.status(status).json({
+      ok: false,
+      error: e.message,
+      ...(e.details ? { details: e.details } : {})
+    });
   }
 });
 
