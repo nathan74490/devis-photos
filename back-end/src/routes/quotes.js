@@ -1,26 +1,56 @@
 // src/routes/quotes.js
 import express from "express";
 import { pool, query } from "../db.js";
+import { body, param, validationResult } from "express-validator";
 
 const router = express.Router();
 
+/* ---------- Middleware de validation commun ---------- */
+function validate(req, res, next) {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) return next();
+  return res.status(422).json({
+    ok: false,
+    error: "VALIDATION_ERROR",
+    details: errors.array().map(e => ({
+      location: e.location, param: e.param, msg: e.msg, value: e.value
+    }))
+  });
+}
+
+/* ---------- Validators ---------- */
+const createQuoteValidator = [
+  body("client_name")
+    .trim().isLength({ min: 1, max: 200 }).withMessage("client_name requis (1–200)")
+    .escape(),
+  body("client_email")
+    .optional({ nullable: true })
+    .trim().isEmail().withMessage("client_email invalide")
+    .normalizeEmail(),
+  body("notes")
+    .optional({ nullable: true })
+    .trim().isLength({ max: 2000 }).withMessage("notes max 2000 caractères")
+    .escape()
+];
+
+const quoteIdParamValidator = [
+  param("id").isUUID().withMessage("id doit être un UUID")
+];
+
+const finalizeQuoteValidator = [
+  param("id").isUUID().withMessage("id doit être un UUID"),
+  body("vat_rate").optional().isFloat({ min: 0, max: 100 }).withMessage("vat_rate entre 0 et 100"),
+  body("status").optional().isIn(["draft","finalized","sent","archived"]).withMessage("status invalide")
+];
+
+/* ---------- Routes ---------- */
+
 /**
  * POST /api/quotes
- * Body JSON:
- * {
- *   "client_name": "Jean Dupont",
- *   "client_email": "jean@example.com",
- *   "notes": "Séance tirages"
- * }
- * → crée un devis vide (totaux à 0, status 'draft' si défauts en DB),
- *   retourne l'en-tête du devis.
+ * Body: { client_name, client_email?, notes? }
  */
-router.post("/", async (req, res) => {
+router.post("/", createQuoteValidator, validate, async (req, res) => {
   const { client_name, client_email = null, notes = null } = req.body || {};
-  if (!client_name) {
-    return res.status(400).json({ ok: false, error: "CLIENT_NAME_REQUIRED" });
-  }
-
   try {
     const { rows } = await query(
       `INSERT INTO quotes (client_name, client_email, notes)
@@ -38,17 +68,15 @@ router.post("/", async (req, res) => {
 
 /**
  * GET /api/quotes/:id
- * → renvoie l'en-tête + toutes les lignes (quote_items)
+ * → en-tête + lignes
  */
-router.get("/:id", async (req, res) => {
+router.get("/:id", quoteIdParamValidator, validate, async (req, res) => {
   const { id } = req.params;
-
   try {
     const header = await query(
       `SELECT id, created_at, client_name, client_email, notes,
               subtotal_ex_vat, vat_amount, total_inc_vat, status
-       FROM quotes
-       WHERE id = $1`,
+       FROM quotes WHERE id = $1`,
       [id]
     );
     if (!header.rowCount) {
@@ -71,11 +99,7 @@ router.get("/:id", async (req, res) => {
       [id]
     );
 
-    return res.json({
-      ok: true,
-      quote: header.rows[0],
-      items: items.rows
-    });
+    return res.json({ ok: true, quote: header.rows[0], items: items.rows });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ ok: false, error: "SERVER_ERROR", message: e.message });
@@ -84,10 +108,9 @@ router.get("/:id", async (req, res) => {
 
 /**
  * PATCH /api/quotes/:id/finalize
- * Body JSON (optionnel): { "vat_rate": 20, "status": "finalized" }
- * → recalcule subtotal/vat/total depuis quote_items et met à jour status.
+ * Body (optionnel): { vat_rate, status }
  */
-router.patch("/:id/finalize", async (req, res) => {
+router.patch("/:id/finalize", finalizeQuoteValidator, validate, async (req, res) => {
   const { id } = req.params;
   const { vat_rate = 20, status = "finalized" } = req.body || {};
   const client = await pool.connect();
@@ -95,14 +118,12 @@ router.patch("/:id/finalize", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // vérifier existence
     const exists = await client.query(`SELECT id FROM quotes WHERE id = $1`, [id]);
     if (!exists.rowCount) {
       await client.query("ROLLBACK");
       return res.status(404).json({ ok: false, error: "QUOTE_NOT_FOUND" });
     }
 
-    // somme HT des lignes
     const updated = await client.query(
       `WITH sums AS (
          SELECT quote_id, COALESCE(SUM(line_ex_vat), 0) AS sum_ht
